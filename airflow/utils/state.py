@@ -53,6 +53,7 @@ class TaskInstanceState(str, Enum):
     SUCCESS = "success"  # Task completed
     RESTARTING = "restarting"  # External request to restart (e.g. cleared when running)
     FAILED = "failed"  # Task errored out
+    STUCK_RESCHEDULE = "stuck_reschedule"  # Task got stuck in queued but is up for resch
     UP_FOR_RETRY = "up_for_retry"  # Task failed but has retries left
     UP_FOR_RESCHEDULE = "up_for_reschedule"  # A waiting `reschedule` sensor
     UPSTREAM_FAILED = "upstream_failed"  # One or more upstream deps failed

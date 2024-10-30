@@ -2202,7 +2202,7 @@ class TestSchedulerJob:
         # Second executor called for ti3
         mock_executors[1].try_adopt_task_instances.assert_called_once_with([ti3])
 
-    def test_fail_stuck_queued_tasks(self, dag_maker, session, mock_executors):
+    def test_handle_stuck_queued_tasks(self, dag_maker, session, mock_executors):
         with dag_maker("test_fail_stuck_queued_tasks_multiple_executors"):
             op1 = EmptyOperator(task_id="op1")
             op2 = EmptyOperator(task_id="op2", executor="default_exec")
@@ -2228,7 +2228,7 @@ class TestSchedulerJob:
                 (None,): mock_executors[0],
                 ("secondary_exec",): mock_executors[1],
             }[x]
-            job_runner._fail_tasks_stuck_in_queued()
+            job_runner._handle_tasks_stuck_in_queued()
 
         # Default executor is called for ti1 (no explicit executor override uses default) and ti2 (where we
         # explicitly marked that for execution by the default executor)
@@ -2238,7 +2238,7 @@ class TestSchedulerJob:
             mock_executors[0].cleanup_stuck_queued_tasks.assert_called_once_with(tis=[ti2, ti1])
         mock_executors[1].cleanup_stuck_queued_tasks.assert_called_once_with(tis=[ti3])
 
-    def test_fail_stuck_queued_tasks_raises_not_implemented(self, dag_maker, session, caplog):
+    def test_handle_stuck_queued_tasks_raises_not_implemented(self, dag_maker, session, caplog):
         with dag_maker("test_fail_stuck_queued_tasks"):
             op1 = EmptyOperator(task_id="op1")
 
@@ -2253,7 +2253,7 @@ class TestSchedulerJob:
         job_runner = SchedulerJobRunner(job=scheduler_job, num_runs=0)
         job_runner._task_queued_timeout = 300
         with caplog.at_level(logging.DEBUG):
-            job_runner._fail_tasks_stuck_in_queued()
+            job_runner._handle_tasks_stuck_in_queued()
         assert "Executor doesn't support cleanup of stuck queued tasks. Skipping." in caplog.text
 
     @mock.patch("airflow.dag_processing.manager.DagFileProcessorAgent")

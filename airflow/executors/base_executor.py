@@ -478,6 +478,15 @@ class BaseExecutor(LoggingMixin):
         """
         self.change_state(key, TaskInstanceState.QUEUED, info)
 
+    def retry_stuck_task(self, key: TaskInstanceKey, info=None) -> None:
+        """
+        Set queued state for the event.
+
+        :param info: Executor information for the task instance
+        :param key: Unique key for the task instance
+        """
+        self.change_state(key, TaskInstanceState.STUCK_RESCHEDULE, info)
+
     def running_state(self, key: TaskInstanceKey, info=None) -> None:
         """
         Set running state for the event.
