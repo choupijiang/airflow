@@ -1822,8 +1822,29 @@ class SchedulerJobRunner(BaseJobRunner, LoggingMixin):
                                 ),
                             )
                         )
+                        num_times_stuck = self._get_num_times_stuck(ti, session)
+                        if num_times_stuck < conf.getint("core", "num_stuck_retries", fallback=3):
+                            self._reset_task_instance(ti, session)
+
+
             except NotImplementedError:
                 self.log.debug("Executor doesn't support cleanup of stuck queued tasks. Skipping.")
+
+    @provide_session
+    def _get_num_times_stuck(self, ti: TaskInstance, session: Session = NEW_SESSION) -> int:
+        return len(session.scalars(select(Log).where(Log.dag_id == ti.task_id)
+                        .where(Log.dag_id == ti.dag_id)
+                        .where(Log.run_id == ti.run_id)
+                        .where(Log.map_index == ti.map_index)
+                        .where(Log.try_number == ti.try_number)
+                        .where(Log.event == "stuck in queued")
+                        ))
+
+    def _reset_task_instance(self, ti: TaskInstance, session: Session = NEW_SESSION):
+        ti.external_executor_id = None
+        ti.state = State.SCHEDULED
+        session.add(ti)
+        session.commit()
 
     @provide_session
     def _emit_pool_metrics(self, session: Session = NEW_SESSION) -> None:
