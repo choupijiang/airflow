@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from airflow.configuration import conf
 from importlib import metadata
 from typing import TYPE_CHECKING, overload
 
@@ -36,7 +37,14 @@ _PENDULUM3 = version.parse(metadata.version("pendulum")).major == 3
 # - Timezone("UTC") in pendulum 3
 # - FixedTimezone(0, "UTC") in pendulum 2
 utc = pendulum.UTC
-
+try:
+    tz = conf.get("core", "default_timezone")
+    if tz == "system":
+        utc = pendulum.local_timezone()
+    else:
+        utc = pendulum.timezone(tz)
+except Exception:
+    pass
 
 def is_localized(value):
     """Determine if a given datetime.datetime is aware.

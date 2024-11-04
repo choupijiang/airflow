@@ -143,7 +143,7 @@ function common::install_packaging_tools() {
             echo "${COLOR_BLUE}(Re)Installing pip version: ${AIRFLOW_PIP_VERSION}${COLOR_RESET}"
             echo
             # shellcheck disable=SC2086
-            pip install --root-user-action ignore --disable-pip-version-check "pip==${AIRFLOW_PIP_VERSION}"
+            pip install --root-user-action ignore --disable-pip-version-check "pip==${AIRFLOW_PIP_VERSION}" -i https://pypi.tuna.tsinghua.edu.cn/simple
         fi
     fi
     if [[ ! ${AIRFLOW_UV_VERSION} =~ [0-9.]* ]]; then
@@ -160,7 +160,7 @@ function common::install_packaging_tools() {
             echo "${COLOR_BLUE}(Re)Installing uv version: ${AIRFLOW_UV_VERSION}${COLOR_RESET}"
             echo
             # shellcheck disable=SC2086
-            pip install --root-user-action ignore --disable-pip-version-check "uv==${AIRFLOW_UV_VERSION}"
+            pip install --root-user-action ignore --disable-pip-version-check "uv==${AIRFLOW_UV_VERSION}"  -i https://pypi.tuna.tsinghua.edu.cn/simple
         fi
     fi
     # make sure that the venv/user in .local exists
