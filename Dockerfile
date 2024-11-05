@@ -45,7 +45,7 @@ ARG AIRFLOW_UID="50000"
 ARG AIRFLOW_USER_HOME_DIR=/home/airflow
 
 # latest released version here
-ARG AIRFLOW_VERSION="2.9.0"
+ARG AIRFLOW_VERSION="2.9.3"
 
 ARG PYTHON_BASE_IMAGE="python:3.8-slim-bookworm"
 
@@ -1519,8 +1519,8 @@ RUN if [[ -f /docker-context-files/pip.conf ]]; then \
 # Additional PIP flags passed to all pip install commands except reinstalling pip itself
 ARG ADDITIONAL_PIP_INSTALL_FLAGS=""
 
-ARG AIRFLOW_PIP_VERSION
-ARG AIRFLOW_UV_VERSION
+ARG AIRFLOW_PIP_VERSION=24.1.2
+ARG AIRFLOW_UV_VERSION=0.2.22
 ARG AIRFLOW_USE_UV
 ARG UV_HTTP_TIMEOUT
 
