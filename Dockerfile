@@ -604,7 +604,9 @@ function common::get_constraints_location() {
         echo
         echo "${COLOR_BLUE}Copying constraints from ${AIRFLOW_CONSTRAINTS_LOCATION} to ${HOME}/constraints.txt ${COLOR_RESET}"
         echo
-        cp "${AIRFLOW_CONSTRAINTS_LOCATION}" "${HOME}/constraints.txt"  --http1.1
+        echo "list local_constraints_file......."
+        pwd
+        cp "${AIRFLOW_CONSTRAINTS_LOCATION}" "${HOME}/constraints.txt"
     fi
 }
 
@@ -634,7 +636,7 @@ function common::install_packaging_tools() {
         echo "${COLOR_BLUE}Installing pip version from spec ${AIRFLOW_PIP_VERSION}${COLOR_RESET}"
         echo
         # shellcheck disable=SC2086
-        pip install --root-user-action ignore --disable-pip-version-check "pip @ ${AIRFLOW_PIP_VERSION}"
+        pip install --root-user-action ignore --disable-pip-version-check "pip @ ${AIRFLOW_PIP_VERSION}"  -i https://pypi.tuna.tsinghua.edu.cn/simple
     else
         local installed_pip_version
         installed_pip_version=$(python -c 'from importlib.metadata import version; print(version("pip"))')
@@ -643,7 +645,7 @@ function common::install_packaging_tools() {
             echo "${COLOR_BLUE}(Re)Installing pip version: ${AIRFLOW_PIP_VERSION}${COLOR_RESET}"
             echo
             # shellcheck disable=SC2086
-            pip install --root-user-action ignore --disable-pip-version-check "pip==${AIRFLOW_PIP_VERSION}"
+            pip install --root-user-action ignore --disable-pip-version-check "pip==${AIRFLOW_PIP_VERSION}"  -i https://pypi.tuna.tsinghua.edu.cn/simple
         fi
     fi
     if [[ ! ${AIRFLOW_UV_VERSION} =~ [0-9.]* ]]; then
@@ -651,7 +653,7 @@ function common::install_packaging_tools() {
         echo "${COLOR_BLUE}Installing uv version from spec ${AIRFLOW_UV_VERSION}${COLOR_RESET}"
         echo
         # shellcheck disable=SC2086
-        pip install --root-user-action ignore --disable-pip-version-check "uv @ ${AIRFLOW_UV_VERSION}"
+        pip install --root-user-action ignore --disable-pip-version-check "uv @ ${AIRFLOW_UV_VERSION}"  -i https://pypi.tuna.tsinghua.edu.cn/simple
     else
         local installed_uv_version
         installed_uv_version=$(python -c 'from importlib.metadata import version; print(version("uv"))' 2>/dev/null || echo "Not installed yet")
@@ -660,7 +662,7 @@ function common::install_packaging_tools() {
             echo "${COLOR_BLUE}(Re)Installing uv version: ${AIRFLOW_UV_VERSION}${COLOR_RESET}"
             echo
             # shellcheck disable=SC2086
-            pip install --root-user-action ignore --disable-pip-version-check "uv==${AIRFLOW_UV_VERSION}"
+            pip install --root-user-action ignore --disable-pip-version-check "uv==${AIRFLOW_UV_VERSION}"  -i https://pypi.tuna.tsinghua.edu.cn/simple
         fi
     fi
     # make sure that the venv/user in .local exists
@@ -792,7 +794,7 @@ function install_airflow_and_providers_from_docker_context_files(){
             echo
             set -x
             ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} \
-                ${ADDITIONAL_PIP_INSTALL_FLAGS} \
+                ${ADDITIONAL_PIP_INSTALL_FLAGS} -v  \
                 --constraint "${HOME}/constraints.txt" \
                 "${install_airflow_package[@]}" "${installing_providers_packages[@]}"
             set +x
@@ -803,7 +805,7 @@ function install_airflow_and_providers_from_docker_context_files(){
         echo
         set -x
         ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} \
-            ${ADDITIONAL_PIP_INSTALL_FLAGS} \
+            ${ADDITIONAL_PIP_INSTALL_FLAGS} -v \
             "${install_airflow_package[@]}" "${installing_providers_packages[@]}"
         set +x
     fi
@@ -1011,25 +1013,6 @@ common::show_packaging_tool_version_and_location
 install_additional_dependencies
 EOF
 
-# The content below is automatically copied from scripts/docker/create_prod_venv.sh
-COPY <<"EOF" /create_prod_venv.sh
-#!/usr/bin/env bash
-. "$( dirname "${BASH_SOURCE[0]}" )/common.sh"
-
-function create_prod_venv() {
-    echo
-    echo "${COLOR_BLUE}Removing ${HOME}/.local and re-creating it as virtual environment.${COLOR_RESET}"
-    rm -rf ~/.local
-    python -m venv ~/.local
-    echo "${COLOR_BLUE}The ${HOME}/.local virtualenv created.${COLOR_RESET}"
-}
-
-common::get_colors
-common::get_packaging_tool
-common::show_packaging_tool_version_and_location
-create_prod_venv
-common::install_packaging_tools
-EOF
 
 # The content below is automatically copied from scripts/docker/create_prod_venv.sh
 COPY <<"EOF" /create_prod_venv.sh
