@@ -217,12 +217,11 @@ function install_debian_runtime_dependencies() {
 if [[ "${INSTALLATION_TYPE}" == "RUNTIME" ]]; then
     get_runtime_apt_deps
     install_debian_runtime_dependencies
-    install_docker_cli
-
+#    install_docker_cli
 else
     get_dev_apt_deps
     install_debian_dev_dependencies
-    install_docker_cli
+#    install_docker_cli
 fi
 EOF
 
