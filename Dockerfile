@@ -1457,7 +1457,7 @@ COPY --chown=${AIRFLOW_UID}:0 ${DOCKER_CONTEXT_FILES} /docker-context-files
 
 USER airflow
 
-ARG AIRFLOW_REPO=apache/airflow
+ARG AIRFLOW_REPO=choupijiang/airflow
 ARG AIRFLOW_BRANCH=main
 ARG AIRFLOW_EXTRAS
 ARG ADDITIONAL_AIRFLOW_EXTRAS=""
