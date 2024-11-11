@@ -116,6 +116,7 @@ software-properties-common sqlite3 sudo unixodbc unixodbc-dev zlib1g-dev"
 }
 
 function get_runtime_apt_deps() {
+    echo "start get_runtime_apt_deps"
     local debian_version
     local debian_version_apt_deps
     # Get debian version without installing lsb_release
@@ -139,9 +140,11 @@ ldap-utils libsasl2-2 libsasl2-modules libxmlsec1 locales ${debian_version_apt_d
 lsb-release openssh-client python3-selinux rsync sasl2-bin sqlite3 sudo unixodbc"
         export RUNTIME_APT_DEPS
     fi
+    echo "end get_runtime_apt_deps"
 }
 
 function install_docker_cli() {
+    echo "start install_docker_cli"
     apt-get update
     apt-get install ca-certificates curl
     install -m 0755 -d /etc/apt/keyrings
@@ -192,9 +195,11 @@ function install_debian_dev_dependencies() {
 
     # shellcheck disable=SC2086
     apt-get install -y --no-install-recommends ${DEV_APT_DEPS} ${ADDITIONAL_DEV_APT_DEPS}
+    echo "end install_docker_cli"
 }
 
 function install_debian_runtime_dependencies() {
+    echo "start install_debian_runtime_dependencies"
     apt-get update
     apt-get install --no-install-recommends -yqq apt-utils >/dev/null 2>&1
     apt-get install -y --no-install-recommends curl gnupg2 lsb-release
@@ -212,16 +217,17 @@ function install_debian_runtime_dependencies() {
     apt-get autoremove -yqq --purge
     apt-get clean
     rm -rf /var/lib/apt/lists/* /var/log/*
+    echo "end install_debian_runtime_dependencies"
 }
 
 if [[ "${INSTALLATION_TYPE}" == "RUNTIME" ]]; then
     get_runtime_apt_deps
     install_debian_runtime_dependencies
-#    install_docker_cli
+    install_docker_cli
 else
     get_dev_apt_deps
     install_debian_dev_dependencies
-#    install_docker_cli
+    install_docker_cli
 fi
 EOF
 
@@ -979,7 +985,7 @@ function install_additional_dependencies() {
         set -x
         ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${UPGRADE_EAGERLY} \
             ${ADDITIONAL_PIP_INSTALL_FLAGS} \
-            ${ADDITIONAL_PYTHON_DEPS} ${EAGER_UPGRADE_ADDITIONAL_REQUIREMENTS=}
+            ${ADDITIONAL_PYTHON_DEPS} ${EAGER_UPGRADE_ADDITIONAL_REQUIREMENTS=}  -i  https://pypi.tuna.tsinghua.edu.cn/simple
         set +x
         common::install_packaging_tools
         echo
@@ -993,7 +999,7 @@ function install_additional_dependencies() {
         set -x
         ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${UPGRADE_IF_NEEDED} \
             ${ADDITIONAL_PIP_INSTALL_FLAGS} \
-            ${ADDITIONAL_PYTHON_DEPS}
+            ${ADDITIONAL_PYTHON_DEPS}  -i  https://pypi.tuna.tsinghua.edu.cn/simple
         set +x
         common::install_packaging_tools
         echo
@@ -1457,7 +1463,7 @@ COPY --chown=${AIRFLOW_UID}:0 ${DOCKER_CONTEXT_FILES} /docker-context-files
 
 USER airflow
 
-ARG AIRFLOW_REPO=choupijiang/airflow
+ARG AIRFLOW_REPO=apache/airflow
 ARG AIRFLOW_BRANCH=main
 ARG AIRFLOW_EXTRAS
 ARG ADDITIONAL_AIRFLOW_EXTRAS=""
