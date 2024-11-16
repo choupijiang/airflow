@@ -49,9 +49,9 @@ ARG AIRFLOW_VERSION="2.9.3"
 
 ARG PYTHON_BASE_IMAGE="python:3.8-slim-bookworm"
 
-ARG AIRFLOW_PIP_VERSION=24.1.2
+ARG AIRFLOW_PIP_VERSION=24.3.1
 ARG AIRFLOW_UV_VERSION=0.2.22
-ARG AIRFLOW_USE_UV="true"
+ARG AIRFLOW_USE_UV="false"
 ARG UV_HTTP_TIMEOUT="300"
 ARG AIRFLOW_IMAGE_REPOSITORY="https://github.com/apache/airflow"
 ARG AIRFLOW_IMAGE_README_URL="https://raw.githubusercontent.com/apache/airflow/main/docs/docker-stack/README.md"
@@ -157,9 +157,11 @@ function install_docker_cli() {
       tee /etc/apt/sources.list.d/docker.list > /dev/null
     apt-get update
     apt-get install -y --no-install-recommends docker-ce-cli
+    echo "end install_docker_cli"
 }
 
 function install_debian_dev_dependencies() {
+    echo "start install_debian_dev_dependencies"
     apt-get update
     apt-get install -yqq --no-install-recommends apt-utils >/dev/null 2>&1
     apt-get install -y --no-install-recommends curl gnupg2 lsb-release
@@ -195,7 +197,7 @@ function install_debian_dev_dependencies() {
 
     # shellcheck disable=SC2086
     apt-get install -y --no-install-recommends ${DEV_APT_DEPS} ${ADDITIONAL_DEV_APT_DEPS}
-    echo "end install_docker_cli"
+    echo "end install_debian_dev_dependencies"
 }
 
 function install_debian_runtime_dependencies() {
@@ -609,8 +611,7 @@ function common::get_constraints_location() {
         echo
         echo "${COLOR_BLUE}Copying constraints from ${AIRFLOW_CONSTRAINTS_LOCATION} to ${HOME}/constraints.txt ${COLOR_RESET}"
         echo
-        echo "list local_constraints_file......."
-        pwd
+        echo "list local_constraints_file!current dir is $(pwd). AIRFLOW_CONSTRAINTS_LOCATION is ${AIRFLOW_CONSTRAINTS_LOCATION}"
         cp "${AIRFLOW_CONSTRAINTS_LOCATION}" "${HOME}/constraints.txt"
     fi
 }
@@ -745,6 +746,7 @@ function install_airflow_and_providers_from_docker_context_files(){
     fi
 
     # This is needed to get package names for local context packages
+    echo "install constraints using ${HOME}/constraints.txt!!!"
     ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${ADDITIONAL_PIP_INSTALL_FLAGS} --constraint ${HOME}/constraints.txt packaging
 
     if [[ -n ${AIRFLOW_EXTRAS=} ]]; then
@@ -828,8 +830,9 @@ function install_all_other_packages_from_docker_context_files() {
         grep -v apache_airflow | grep -v apache-airflow || true)
     if [[ -n "${reinstalling_other_packages}" ]]; then
         set -x
+        echo "reinstall other packages"
         ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${ADDITIONAL_PIP_INSTALL_FLAGS} \
-            --force-reinstall --no-deps --no-index ${reinstalling_other_packages}
+            --force-reinstall -v --no-deps --no-index ${reinstalling_other_packages}
         common::install_packaging_tools
         set +x
     fi
@@ -900,6 +903,7 @@ function install_airflow() {
     fi
     # Determine the installation_command_flags based on AIRFLOW_INSTALLATION_METHOD method
     local installation_command_flags
+    echo "echo AIRFLOW_INSTALLATION_METHOD: ${AIRFLOW_INSTALLATION_METHOD}"
     if [[ ${AIRFLOW_INSTALLATION_METHOD} == "." ]]; then
         # When installing from sources - we always use `--editable` mode
         installation_command_flags="--editable .[${AIRFLOW_EXTRAS}]${AIRFLOW_VERSION_SPECIFICATION}"
@@ -915,6 +919,7 @@ function install_airflow() {
         echo
         exit 1
     fi
+    echo "UPGRADE_INVALIDATION_STRING is ${UPGRADE_INVALIDATION_STRING=}, installation_command_flags is ${installation_command_flags}"
     if [[ "${UPGRADE_INVALIDATION_STRING=}" != "" ]]; then
         echo
         echo "${COLOR_BLUE}Remove airflow and all provider packages installed before potentially${COLOR_RESET}"
@@ -1419,7 +1424,7 @@ RUN sed -i 's|http://deb.debian.org/debian|http://mirrors.aliyun.com/debian|g' /
     sed -i 's|http://deb.debian.org/debian-security|http://mirrors.aliyun.com/debian-security|g' /etc/apt/sources.list.d/debian.sources
 
 # 更新包列表并安装软件包
-RUN apt-get update && apt-get install -y curl wget bash
+RUN apt-get update
 
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
@@ -1507,8 +1512,8 @@ RUN if [[ -f /docker-context-files/pip.conf ]]; then \
 # Additional PIP flags passed to all pip install commands except reinstalling pip itself
 ARG ADDITIONAL_PIP_INSTALL_FLAGS=""
 
-ARG AIRFLOW_PIP_VERSION=24.1.2
-ARG AIRFLOW_UV_VERSION=0.2.22
+ARG AIRFLOW_PIP_VERSION
+ARG AIRFLOW_UV_VERSION
 ARG AIRFLOW_USE_UV
 ARG UV_HTTP_TIMEOUT
 
@@ -1607,6 +1612,7 @@ ARG PIP_CACHE_EPOCH="9"
 # hadolint ignore=SC2086, SC2010, DL3042
 RUN --mount=type=cache,id=$PYTHON_BASE_IMAGE-$AIRFLOW_PIP_VERSION-$TARGETARCH-$PIP_CACHE_EPOCH,target=/tmp/.cache/pip,uid=${AIRFLOW_UID} \
     if [[ ${INSTALL_PACKAGES_FROM_CONTEXT} == "true" ]]; then \
+        echo "install docker context file..."; \
         bash /scripts/docker/install_from_docker_context_files.sh; \
     fi; \
     if ! airflow version 2>/dev/null >/dev/null; then \
@@ -1681,7 +1687,7 @@ RUN sed -i 's|http://deb.debian.org/debian|http://mirrors.aliyun.com/debian|g' /
     sed -i 's|http://deb.debian.org/debian-security|http://mirrors.aliyun.com/debian-security|g' /etc/apt/sources.list.d/debian.sources
 
 # 更新包列表并安装软件包
-RUN apt-get update && apt-get install -y curl wget bash
+RUN apt-get update
 
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
