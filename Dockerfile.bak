@@ -116,6 +116,7 @@ software-properties-common sqlite3 sudo unixodbc unixodbc-dev zlib1g-dev"
 }
 
 function get_runtime_apt_deps() {
+    echo "start get_runtime_apt_deps"
     local debian_version
     local debian_version_apt_deps
     # Get debian version without installing lsb_release
@@ -139,9 +140,11 @@ ldap-utils libsasl2-2 libsasl2-modules libxmlsec1 locales ${debian_version_apt_d
 lsb-release openssh-client python3-selinux rsync sasl2-bin sqlite3 sudo unixodbc"
         export RUNTIME_APT_DEPS
     fi
+    echo "end get_runtime_apt_deps"
 }
 
 function install_docker_cli() {
+    echo "start install_docker_cli"
     apt-get update
     apt-get install ca-certificates curl
     install -m 0755 -d /etc/apt/keyrings
@@ -154,9 +157,11 @@ function install_docker_cli() {
       tee /etc/apt/sources.list.d/docker.list > /dev/null
     apt-get update
     apt-get install -y --no-install-recommends docker-ce-cli
+    echo "end install_docker_cli"
 }
 
 function install_debian_dev_dependencies() {
+    echo "start install_debian_dev_dependencies"
     apt-get update
     apt-get install -yqq --no-install-recommends apt-utils >/dev/null 2>&1
     apt-get install -y --no-install-recommends curl gnupg2 lsb-release
@@ -192,9 +197,11 @@ function install_debian_dev_dependencies() {
 
     # shellcheck disable=SC2086
     apt-get install -y --no-install-recommends ${DEV_APT_DEPS} ${ADDITIONAL_DEV_APT_DEPS}
+    echo "end install_debian_dev_dependencies"
 }
 
 function install_debian_runtime_dependencies() {
+    echo "start install_debian_runtime_dependencies"
     apt-get update
     apt-get install --no-install-recommends -yqq apt-utils >/dev/null 2>&1
     apt-get install -y --no-install-recommends curl gnupg2 lsb-release
@@ -212,6 +219,7 @@ function install_debian_runtime_dependencies() {
     apt-get autoremove -yqq --purge
     apt-get clean
     rm -rf /var/lib/apt/lists/* /var/log/*
+    echo "end install_debian_runtime_dependencies"
 }
 
 if [[ "${INSTALLATION_TYPE}" == "RUNTIME" ]]; then
@@ -460,11 +468,11 @@ function install_airflow_dependencies_from_branch_tip() {
     # dependencies that we can cache and reuse when installing airflow using constraints and latest
     # pyproject.toml in the next step (when we install regular airflow).
     set -x
-    curl -fsSL "https://github.com/${AIRFLOW_REPO}/archive/${AIRFLOW_BRANCH}.tar.gz" | \
+    curl -fsSL "https://github.com/${AIRFLOW_REPO}/archive/${AIRFLOW_BRANCH}.tar.gz" --http1.1  | \
         tar xz -C "${TEMP_AIRFLOW_DIR}" --strip 1
     # Make sure editable dependencies are calculated when devel-ci dependencies are installed
-    ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${ADDITIONAL_PIP_INSTALL_FLAGS} \
-        --editable "${TEMP_AIRFLOW_DIR}[${AIRFLOW_EXTRAS}]"
+    ${PACKAGING_TOOL_CMD} install -v ${EXTRA_INSTALL_FLAGS} ${ADDITIONAL_PIP_INSTALL_FLAGS} \
+        --editable "${TEMP_AIRFLOW_DIR}[${AIRFLOW_EXTRAS}]"  -i https://pypi.tuna.tsinghua.edu.cn/simple
     set +x
     common::install_packaging_tools
     set -x
@@ -598,11 +606,12 @@ function common::get_constraints_location() {
         echo
         echo "${COLOR_BLUE}Downloading constraints from ${AIRFLOW_CONSTRAINTS_LOCATION} to ${HOME}/constraints.txt ${COLOR_RESET}"
         echo
-        curl -sSf -o "${HOME}/constraints.txt" "${AIRFLOW_CONSTRAINTS_LOCATION}"
+        curl -sSf -o "${HOME}/constraints.txt" "${AIRFLOW_CONSTRAINTS_LOCATION}"  --http1.1
     else
         echo
         echo "${COLOR_BLUE}Copying constraints from ${AIRFLOW_CONSTRAINTS_LOCATION} to ${HOME}/constraints.txt ${COLOR_RESET}"
         echo
+        echo "list local_constraints_file!current dir is $(pwd). AIRFLOW_CONSTRAINTS_LOCATION is ${AIRFLOW_CONSTRAINTS_LOCATION}"
         cp "${AIRFLOW_CONSTRAINTS_LOCATION}" "${HOME}/constraints.txt"
     fi
 }
@@ -633,7 +642,7 @@ function common::install_packaging_tools() {
         echo "${COLOR_BLUE}Installing pip version from spec ${AIRFLOW_PIP_VERSION}${COLOR_RESET}"
         echo
         # shellcheck disable=SC2086
-        pip install --root-user-action ignore --disable-pip-version-check "pip @ ${AIRFLOW_PIP_VERSION}"
+        pip install --root-user-action ignore --disable-pip-version-check "pip @ ${AIRFLOW_PIP_VERSION}"  -i https://pypi.tuna.tsinghua.edu.cn/simple
     else
         local installed_pip_version
         installed_pip_version=$(python -c 'from importlib.metadata import version; print(version("pip"))')
@@ -642,7 +651,7 @@ function common::install_packaging_tools() {
             echo "${COLOR_BLUE}(Re)Installing pip version: ${AIRFLOW_PIP_VERSION}${COLOR_RESET}"
             echo
             # shellcheck disable=SC2086
-            pip install --root-user-action ignore --disable-pip-version-check "pip==${AIRFLOW_PIP_VERSION}"
+            pip install --root-user-action ignore --disable-pip-version-check "pip==${AIRFLOW_PIP_VERSION}"  -i https://pypi.tuna.tsinghua.edu.cn/simple
         fi
     fi
     if [[ ! ${AIRFLOW_UV_VERSION} =~ [0-9.]* ]]; then
@@ -650,7 +659,7 @@ function common::install_packaging_tools() {
         echo "${COLOR_BLUE}Installing uv version from spec ${AIRFLOW_UV_VERSION}${COLOR_RESET}"
         echo
         # shellcheck disable=SC2086
-        pip install --root-user-action ignore --disable-pip-version-check "uv @ ${AIRFLOW_UV_VERSION}"
+        pip install --root-user-action ignore --disable-pip-version-check "uv @ ${AIRFLOW_UV_VERSION}"  -i https://pypi.tuna.tsinghua.edu.cn/simple
     else
         local installed_uv_version
         installed_uv_version=$(python -c 'from importlib.metadata import version; print(version("uv"))' 2>/dev/null || echo "Not installed yet")
@@ -659,7 +668,7 @@ function common::install_packaging_tools() {
             echo "${COLOR_BLUE}(Re)Installing uv version: ${AIRFLOW_UV_VERSION}${COLOR_RESET}"
             echo
             # shellcheck disable=SC2086
-            pip install --root-user-action ignore --disable-pip-version-check "uv==${AIRFLOW_UV_VERSION}"
+            pip install --root-user-action ignore --disable-pip-version-check "uv==${AIRFLOW_UV_VERSION}"  -i https://pypi.tuna.tsinghua.edu.cn/simple
         fi
     fi
     # make sure that the venv/user in .local exists
@@ -737,6 +746,7 @@ function install_airflow_and_providers_from_docker_context_files(){
     fi
 
     # This is needed to get package names for local context packages
+    echo "install constraints using ${HOME}/constraints.txt!!!"
     ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${ADDITIONAL_PIP_INSTALL_FLAGS} --constraint ${HOME}/constraints.txt packaging
 
     if [[ -n ${AIRFLOW_EXTRAS=} ]]; then
@@ -791,7 +801,7 @@ function install_airflow_and_providers_from_docker_context_files(){
             echo
             set -x
             ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} \
-                ${ADDITIONAL_PIP_INSTALL_FLAGS} \
+                ${ADDITIONAL_PIP_INSTALL_FLAGS} -v  \
                 --constraint "${HOME}/constraints.txt" \
                 "${install_airflow_package[@]}" "${installing_providers_packages[@]}"
             set +x
@@ -802,7 +812,7 @@ function install_airflow_and_providers_from_docker_context_files(){
         echo
         set -x
         ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} \
-            ${ADDITIONAL_PIP_INSTALL_FLAGS} \
+            ${ADDITIONAL_PIP_INSTALL_FLAGS} -v \
             "${install_airflow_package[@]}" "${installing_providers_packages[@]}"
         set +x
     fi
@@ -820,8 +830,9 @@ function install_all_other_packages_from_docker_context_files() {
         grep -v apache_airflow | grep -v apache-airflow || true)
     if [[ -n "${reinstalling_other_packages}" ]]; then
         set -x
+        echo "reinstall other packages"
         ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${ADDITIONAL_PIP_INSTALL_FLAGS} \
-            --force-reinstall --no-deps --no-index ${reinstalling_other_packages}
+            --force-reinstall -v --no-deps --no-index ${reinstalling_other_packages}
         common::install_packaging_tools
         set +x
     fi
@@ -892,6 +903,7 @@ function install_airflow() {
     fi
     # Determine the installation_command_flags based on AIRFLOW_INSTALLATION_METHOD method
     local installation_command_flags
+    echo "echo AIRFLOW_INSTALLATION_METHOD: ${AIRFLOW_INSTALLATION_METHOD}"
     if [[ ${AIRFLOW_INSTALLATION_METHOD} == "." ]]; then
         # When installing from sources - we always use `--editable` mode
         installation_command_flags="--editable .[${AIRFLOW_EXTRAS}]${AIRFLOW_VERSION_SPECIFICATION}"
@@ -907,6 +919,7 @@ function install_airflow() {
         echo
         exit 1
     fi
+    echo "UPGRADE_INVALIDATION_STRING is ${UPGRADE_INVALIDATION_STRING=}, installation_command_flags is ${installation_command_flags}"
     if [[ "${UPGRADE_INVALIDATION_STRING=}" != "" ]]; then
         echo
         echo "${COLOR_BLUE}Remove airflow and all provider packages installed before potentially${COLOR_RESET}"
@@ -918,7 +931,7 @@ function install_airflow() {
         echo "${COLOR_BLUE}Installing all packages in eager upgrade mode. Installation method: ${AIRFLOW_INSTALLATION_METHOD}${COLOR_RESET}"
         echo
         set -x
-        ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${UPGRADE_EAGERLY} ${ADDITIONAL_PIP_INSTALL_FLAGS} ${installation_command_flags} ${EAGER_UPGRADE_ADDITIONAL_REQUIREMENTS=}
+        ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${UPGRADE_EAGERLY} ${ADDITIONAL_PIP_INSTALL_FLAGS} ${installation_command_flags} ${EAGER_UPGRADE_ADDITIONAL_REQUIREMENTS=}  -i  https://pypi.tuna.tsinghua.edu.cn/simple
         set +x
         common::install_packaging_tools
         echo
@@ -931,7 +944,7 @@ function install_airflow() {
         echo
         set -x
         # Install all packages with constraints
-        if ! ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${ADDITIONAL_PIP_INSTALL_FLAGS} ${installation_command_flags} --constraint "${HOME}/constraints.txt"; then
+        if ! ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${ADDITIONAL_PIP_INSTALL_FLAGS} ${installation_command_flags} --constraint "${HOME}/constraints.txt"  -i  https://pypi.tuna.tsinghua.edu.cn/simple; then
             set +x
             echo
             echo "${COLOR_YELLOW}Likely pyproject.toml has new dependencies conflicting with constraints.${COLOR_RESET}"
@@ -939,7 +952,7 @@ function install_airflow() {
             echo "${COLOR_BLUE}Falling back to no-constraints installation.${COLOR_RESET}"
             echo
             set -x
-            ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${UPGRADE_IF_NEEDED} ${ADDITIONAL_PIP_INSTALL_FLAGS} ${installation_command_flags}
+            ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${UPGRADE_IF_NEEDED} ${ADDITIONAL_PIP_INSTALL_FLAGS} ${installation_command_flags}  -i  https://pypi.tuna.tsinghua.edu.cn/simple
         fi
         set +x
         common::install_packaging_tools
@@ -977,7 +990,7 @@ function install_additional_dependencies() {
         set -x
         ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${UPGRADE_EAGERLY} \
             ${ADDITIONAL_PIP_INSTALL_FLAGS} \
-            ${ADDITIONAL_PYTHON_DEPS} ${EAGER_UPGRADE_ADDITIONAL_REQUIREMENTS=}
+            ${ADDITIONAL_PYTHON_DEPS} ${EAGER_UPGRADE_ADDITIONAL_REQUIREMENTS=}  -i  https://pypi.tuna.tsinghua.edu.cn/simple
         set +x
         common::install_packaging_tools
         echo
@@ -991,7 +1004,7 @@ function install_additional_dependencies() {
         set -x
         ${PACKAGING_TOOL_CMD} install ${EXTRA_INSTALL_FLAGS} ${UPGRADE_IF_NEEDED} \
             ${ADDITIONAL_PIP_INSTALL_FLAGS} \
-            ${ADDITIONAL_PYTHON_DEPS}
+            ${ADDITIONAL_PYTHON_DEPS}  -i  https://pypi.tuna.tsinghua.edu.cn/simple
         set +x
         common::install_packaging_tools
         echo
@@ -1010,25 +1023,6 @@ common::show_packaging_tool_version_and_location
 install_additional_dependencies
 EOF
 
-# The content below is automatically copied from scripts/docker/create_prod_venv.sh
-COPY <<"EOF" /create_prod_venv.sh
-#!/usr/bin/env bash
-. "$( dirname "${BASH_SOURCE[0]}" )/common.sh"
-
-function create_prod_venv() {
-    echo
-    echo "${COLOR_BLUE}Removing ${HOME}/.local and re-creating it as virtual environment.${COLOR_RESET}"
-    rm -rf ~/.local
-    python -m venv ~/.local
-    echo "${COLOR_BLUE}The ${HOME}/.local virtualenv created.${COLOR_RESET}"
-}
-
-common::get_colors
-common::get_packaging_tool
-common::show_packaging_tool_version_and_location
-create_prod_venv
-common::install_packaging_tools
-EOF
 
 # The content below is automatically copied from scripts/docker/create_prod_venv.sh
 COPY <<"EOF" /create_prod_venv.sh
@@ -1425,6 +1419,16 @@ ENV DEV_APT_DEPS=${DEV_APT_DEPS} \
     ADDITIONAL_DEV_APT_COMMAND=${ADDITIONAL_DEV_APT_COMMAND} \
     ADDITIONAL_DEV_APT_ENV=${ADDITIONAL_DEV_APT_ENV}
 
+
+RUN sed -i 's|http://deb.debian.org/debian|http://mirrors.aliyun.com/debian|g' /etc/apt/sources.list.d/debian.sources && \
+    sed -i 's|http://deb.debian.org/debian-security|http://mirrors.aliyun.com/debian-security|g' /etc/apt/sources.list.d/debian.sources
+
+# 更新包列表并安装软件包
+RUN apt-get update
+
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+
 COPY --from=scripts install_os_dependencies.sh /scripts/docker/
 RUN bash /scripts/docker/install_os_dependencies.sh dev
 
@@ -1608,6 +1612,7 @@ ARG PIP_CACHE_EPOCH="9"
 # hadolint ignore=SC2086, SC2010, DL3042
 RUN --mount=type=cache,id=$PYTHON_BASE_IMAGE-$AIRFLOW_PIP_VERSION-$TARGETARCH-$PIP_CACHE_EPOCH,target=/tmp/.cache/pip,uid=${AIRFLOW_UID} \
     if [[ ${INSTALL_PACKAGES_FROM_CONTEXT} == "true" ]]; then \
+        echo "install docker context file..."; \
         bash /scripts/docker/install_from_docker_context_files.sh; \
     fi; \
     if ! airflow version 2>/dev/null >/dev/null; then \
@@ -1676,6 +1681,15 @@ ENV RUNTIME_APT_DEPS=${RUNTIME_APT_DEPS} \
     INSTALL_POSTGRES_CLIENT=${INSTALL_POSTGRES_CLIENT} \
     GUNICORN_CMD_ARGS="--worker-tmp-dir /dev/shm" \
     AIRFLOW_INSTALLATION_METHOD=${AIRFLOW_INSTALLATION_METHOD}
+
+
+RUN sed -i 's|http://deb.debian.org/debian|http://mirrors.aliyun.com/debian|g' /etc/apt/sources.list.d/debian.sources && \
+    sed -i 's|http://deb.debian.org/debian-security|http://mirrors.aliyun.com/debian-security|g' /etc/apt/sources.list.d/debian.sources
+
+# 更新包列表并安装软件包
+RUN apt-get update
+
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 COPY --from=scripts install_os_dependencies.sh /scripts/docker/
 RUN bash /scripts/docker/install_os_dependencies.sh runtime
