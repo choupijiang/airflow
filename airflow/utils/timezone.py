@@ -72,7 +72,7 @@ def is_naive(value):
 
 def utcnow() -> dt.datetime:
     """Get the current date and time in UTC."""
-    return dt.datetime.now(tz=utc)
+    return dt.datetime.now().replace(tzinfo=utc)
 
 
 def utc_epoch() -> dt.datetime:
